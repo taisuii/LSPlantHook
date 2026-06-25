@@ -1,0 +1,79 @@
+name: Release
+
+# 构建 :hook AAR（com.android.bridge/engine + 静态嵌入 lsplant 的 libsongkit.so）。
+# push tag v* 时额外发 GitHub Release；普通 push / PR / 手动触发只做构建校验。
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+    paths-ignore:
+      - 'README.md'
+      - 'HANDOFF.md'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # 发 release 需要
+
+jobs:
+  build:
+    name: Build :hook AAR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        # 子模块已全部 vendored（dex_builder / parallel_hashmap / lsplant），无需 submodules
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      # lsplant 用 C++23 modules → 必须 Ninja（CMake module 扫描依赖）
+      - name: Set up Ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
+        with:
+          version: 1.12.1
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1
+        with:
+          key: ${{ runner.os }}-${{ github.sha }}
+          restore-keys: ${{ runner.os }}
+
+      # 与上游 fork CI 同款工具链：NDK r29-beta2（包坐标 29.0.13599879，Pkg.Revision 含 -beta2）+ CMake 4.0.2
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: tools ndk;29.0.13599879 cmake;4.0.2
+          log-accepted-android-sdk-licenses: false
+
+      - name: Build with Gradle
+        run: |
+          ccache -o cache_dir=${{ github.workspace }}/.ccache
+          ccache -o hash_dir=false
+          ccache -o compiler_check='%compiler% -dumpmachine; %compiler% -dumpversion'
+          echo 'android.native.buildOutput=verbose' >> gradle.properties
+          ./gradlew :hook:assembleRelease --stacktrace
+          ./gradlew --stop
+
+      - name: Collect AAR
+        run: |
+          mkdir -p dist
+          cp hook/build/outputs/aar/hook-release.aar dist/LSPlantHook-release.aar
+          ls -l dist
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LSPlantHook-aar
+          path: dist/LSPlantHook-release.aar
+
+      - name: Publish Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/LSPlantHook-release.aar
+          generate_release_notes: true

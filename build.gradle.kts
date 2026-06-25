@@ -1,0 +1,6 @@
+val androidTargetSdkVersion by extra(36)
+val androidMinSdkVersion by extra(21)
+val androidBuildToolsVersion by extra("36.0.0")
+val androidCompileSdkVersion by extra(36)
+val androidNdkVersion by extra(libs.versions.ndk.get())
+val androidCmakeVersion by extra("4.0.0+")

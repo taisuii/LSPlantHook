@@ -1,0 +1,8 @@
+{
+  global:
+    JNI_OnLoad;
+    JNI_OnUnload;
+    Java_com_android_engine_HookEngine_*;
+  local:
+    *;
+};

@@ -1,0 +1,14 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+**/build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# 内部交接文档（含本机路径与上游项目上下文），仅本地保留，不入公开仓库
+HANDOFF.md
