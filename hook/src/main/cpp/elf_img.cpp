@@ -11,6 +11,7 @@
 
 #include <malloc.h>
 #include <cstring>
+#include <cerrno>   // NDK29/clang20/C++23 头文件卫生更严，errno 不再传递包含
 #include <sys/mman.h>
 #include <unistd.h>
 #include <string_view>
